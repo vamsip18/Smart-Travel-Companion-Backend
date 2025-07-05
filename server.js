@@ -869,6 +869,8 @@ app.get("/restaurants", async (req, res) => {
     res.json(filteredData);
   } catch (error) {
     console.error("Error fetching restaurants:", error.message);
+    console.log(latitude);
+    console.log(longitude);
     res.status(500).json({ error: "Failed to fetch restaurant data." });
   }
 });

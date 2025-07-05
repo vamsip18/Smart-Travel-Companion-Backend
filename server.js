@@ -982,7 +982,7 @@ app.get("/:type", async (req, res) => {
     const places = response.data.results || [];
 
     const staticFallbackImages = Array.from({ length: 9 }, (_, i) =>
-      `smart-travel-companion.vercel.app/assets/images/hospitals/h${i + 1}.jpeg`
+      `https://smart-travel-companion.vercel.app/assets/images/hospitals/h${i + 1}.jpeg`
     );
 
     let usedFallbackIndexes = new Set();

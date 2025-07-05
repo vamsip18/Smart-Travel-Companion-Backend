@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 8000;
 // Database connection
 const db = mysql.createConnection({
   host: "sql8.freesqldatabase.com",
-  user: "sql8788368", // Change based on your MySQL setup
+  user: "sql8788368",
   password: "R9G1mXWPK6",
   database: "sql8788368",
 });
@@ -42,8 +42,12 @@ app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: ["https://smart-travel-companion-backend.onrender.com", "http://localhost:5173" ,"http://localhost:8000"], // Update with your frontend URL
-    methods: ["GET", "POST", "PUT", "DELETE"], // Add DELETE method
+    origin: [
+      "https://smart-travel-companion-backend.onrender.com",
+      "http://localhost:5173",
+      "http://localhost:8000",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
@@ -62,7 +66,7 @@ const getCoordinates = async (location) => {
     }
     throw new Error("No coordinates found for the given location.");
   } catch (error) {
-    console.error("Error fetching coordinates:", error.message);
+    console.error("Error fetching coordinates:", error.message, error.stack);
     throw error;
   }
 };
@@ -71,7 +75,7 @@ const fetchImageFromUnsplash = async (query) => {
   try {
     const unsplashAPI = "https://api.unsplash.com/photos/random";
     const headers = {
-      Authorization: `Client-ID ${process.env.UNSPLASH_API_KEY}`, // Replace with your Unsplash API key
+      Authorization: `Client-ID ${process.env.UNSPLASH_API_KEY}`,
     };
     const response = await axios.get(unsplashAPI, {
       headers,
@@ -84,11 +88,11 @@ const fetchImageFromUnsplash = async (query) => {
     if (response.data.urls) {
       return response.data.urls.small;
     } else {
-      return "https://via.placeholder.com/250x150.png?text=No+Image"; // Fallback placeholder
+      return "https://via.placeholder.com/250x150.png?text=No+Image";
     }
   } catch (error) {
     console.error("Error fetching image from Unsplash:", error.message);
-    return "https://via.placeholder.com/250x150.png?text=No+Image"; // Fallback placeholder
+    return "https://via.placeholder.com/250x150.png?text=No+Image";
   }
 };
 
@@ -107,16 +111,16 @@ const fetchPlaces = async (location, query) => {
       params: {
         ll: `${latitude},${longitude}`,
         query: query,
-        radius: 5000, // Search within 5km
+        radius: 5000,
         limit: 10,
       },
     });
 
-    const places = response.data.results;
+    const places = response.data.results || [];
 
     const placesWithImages = await Promise.all(
       places.map(async (place) => {
-        let photo = "https://via.placeholder.com/250x150.png?text=No+Image"; // Default image
+        let photo = "https://via.placeholder.com/250x150.png?text=No+Image";
         try {
           const photoResponse = await axios.get(
             `https://api.foursquare.com/v3/places/${place.fsq_id}/photos`,
@@ -129,7 +133,7 @@ const fetchPlaces = async (location, query) => {
             photo = await fetchImageFromUnsplash(query);
           }
         } catch (error) {
-          console.error("Error fetching Foursquare photo:", error.message);
+          console.warn("Error fetching Foursquare photo:", error.message);
           photo = await fetchImageFromUnsplash(query);
         }
 
@@ -145,7 +149,7 @@ const fetchPlaces = async (location, query) => {
 
     return placesWithImages;
   } catch (error) {
-    console.error(`Error fetching ${query}:`, error.message);
+    console.error(`Error fetching ${query}:`, error.message, error.stack);
     return [];
   }
 };
@@ -153,7 +157,6 @@ const fetchPlaces = async (location, query) => {
 // Get user ID from email
 app.get("/get-user-id", (req, res) => {
   const email = req.query.email;
-  // console.log(email);
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
   }
@@ -167,7 +170,6 @@ app.get("/get-user-id", (req, res) => {
     if (results.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-    // console.log(results[0].id);
     res.json({ userId: results[0].id });
   });
 });
@@ -180,7 +182,7 @@ app.get("/get-user-details", (req, res) => {
     return res.status(400).json({ message: "Email is required" });
   }
 
-  const sql = "SELECT fullname, phone,created_at FROM users WHERE email = ?";
+  const sql = "SELECT fullname, phone, created_at FROM users WHERE email = ?";
   db.query(sql, [email], (err, results) => {
     if (err) {
       console.error("Error fetching user details:", err);
@@ -211,7 +213,7 @@ app.put("/update-user-details", async (req, res) => {
   try {
     const updateQuery = `
       UPDATE users
-      SET fullname = ?, phone = ? 
+      SET fullname = ?, phone = ?
       WHERE email = ?
     `;
 
@@ -222,26 +224,38 @@ app.put("/update-user-details", async (req, res) => {
       [email]
     );
 
-    res.json(updatedUser[0]); // return updated user details
+    res.json(updatedUser[0]);
   } catch (error) {
     console.error("Error updating user details:", error);
     res.status(500).json({ error: "Failed to update user details" });
   }
 });
 
-// Endpoints
 // Save restaurant to profile
 app.post("/save-restaurant", (req, res) => {
   const { user_id, restaurantId, name, address, photo, latitude, longitude } = req.body;
 
   const query = `
-    INSERT INTO saved_restaurants (user_id, restaurant_id, name, address, photo, latitude, longitude) 
-    VALUES (?, ?, ?, ?, ?, ?, ?) 
+    INSERT INTO saved_restaurants (user_id, restaurant_id, name, address, photo, latitude, longitude)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE name=?, address=?, photo=?, latitude=?, longitude=?
   `;
   db.query(
     query,
-    [user_id, restaurantId, name, address, photo, latitude, longitude, name, address, photo, latitude, longitude],
+    [
+      user_id,
+      restaurantId,
+      name,
+      address,
+      photo,
+      latitude,
+      longitude,
+      name,
+      address,
+      photo,
+      latitude,
+      longitude,
+    ],
     (err, result) => {
       if (err) {
         console.error("Error saving restaurant:", err);
@@ -255,9 +269,8 @@ app.post("/save-restaurant", (req, res) => {
 // Get saved restaurants for a user
 app.get("/saved-restaurants/:userId", (req, res) => {
   const userId = req.params.userId;
-  // console.log(userId);
   db.query(
-    "SELECT id,restaurant_id, name, address, photo, latitude, longitude FROM saved_restaurants WHERE user_id = ?",
+    "SELECT id, restaurant_id, name, address, photo, latitude, longitude FROM saved_restaurants WHERE user_id = ?",
     [userId],
     (err, results) => {
       if (err) {
@@ -269,17 +282,20 @@ app.get("/saved-restaurants/:userId", (req, res) => {
   );
 });
 
-
 // Delete a saved restaurant by ID
 app.delete("/delete-restaurant/:id", (req, res) => {
   const restaurantId = req.params.id;
-  db.query("DELETE FROM saved_restaurants WHERE id = ?", [restaurantId], (err, result) => {
-    if (err) {
-      console.error("Error deleting restaurant:", err);
-      return res.status(500).json({ error: "Failed to delete restaurant" });
+  db.query(
+    "DELETE FROM saved_restaurants WHERE id = ?",
+    [restaurantId],
+    (err, result) => {
+      if (err) {
+        console.error("Error deleting restaurant:", err);
+        return res.status(500).json({ error: "Failed to delete restaurant" });
+      }
+      res.json({ success: true, message: "Restaurant deleted successfully" });
     }
-    res.json({ success: true, message: "Restaurant deleted successfully" });
-  });
+  );
 });
 
 // Unsave restaurant for a user
@@ -288,7 +304,8 @@ app.post("/delete-restaurant", (req, res) => {
   if (!user_id || !restaurantId) {
     return res.status(400).json({ message: "Missing required parameters" });
   }
-  const query = "DELETE FROM saved_restaurants WHERE user_id = ? AND restaurant_id = ?";
+  const query =
+    "DELETE FROM saved_restaurants WHERE user_id = ? AND restaurant_id = ?";
   db.query(query, [user_id, restaurantId], (err, result) => {
     if (err) {
       console.error("Error deleting restaurant:", err);
@@ -308,13 +325,13 @@ app.post("/save-hospital", (req, res) => {
     return res.status(401).json({ error: "User not logged in" });
   }
   const query = `
-    INSERT INTO saved_hospitals (user_id, hospital_id, name, address, photo, latitude, longitude) 
-    VALUES (?, ?, ?, ?, ?, ?, ?) 
-    ON DUPLICATE KEY UPDATE 
-    name = VALUES(name), 
-    address = VALUES(address), 
-    photo = VALUES(photo), 
-    latitude = VALUES(latitude), 
+    INSERT INTO saved_hospitals (user_id, hospital_id, name, address, photo, latitude, longitude)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+    name = VALUES(name),
+    address = VALUES(address),
+    photo = VALUES(photo),
+    latitude = VALUES(latitude),
     longitude = VALUES(longitude)
   `;
   db.query(
@@ -332,10 +349,9 @@ app.post("/save-hospital", (req, res) => {
 
 // Get saved hospitals for a user
 app.get("/saved-hospitals/:userId", (req, res) => {
-  console.log(req.params.userId);
   const userId = req.params.userId;
   db.query(
-    "SELECT id,hospital_id, name, address, photo, latitude, longitude FROM saved_hospitals WHERE user_id = ?",
+    "SELECT id, hospital_id, name, address, photo, latitude, longitude FROM saved_hospitals WHERE user_id = ?",
     [userId],
     (err, results) => {
       if (err) {
@@ -350,13 +366,17 @@ app.get("/saved-hospitals/:userId", (req, res) => {
 // Delete a saved hospital by ID
 app.delete("/delete-hospital/:id", (req, res) => {
   const hospitalId = req.params.id;
-  db.query("DELETE FROM saved_hospitals WHERE id = ?", [hospitalId], (err, result) => {
-    if (err) {
-      console.error("Error deleting hospital:", err);
-      return res.status(500).json({ error: "Failed to delete hospital" });
+  db.query(
+    "DELETE FROM saved_hospitals WHERE id = ?",
+    [hospitalId],
+    (err, result) => {
+      if (err) {
+        console.error("Error deleting hospital:", err);
+        return res.status(500).json({ error: "Failed to delete hospital" });
+      }
+      res.json({ success: true, message: "Hospital deleted successfully" });
     }
-    res.json({ success: true, message: "Hospital deleted successfully" });
-  });
+  );
 });
 
 // Unsave hospital for a user
@@ -380,7 +400,20 @@ app.post("/delete-hospital", (req, res) => {
 
 // Save live event to profile
 app.post("/save-event", (req, res) => {
-  const { userId, eventId, name, venue, city, country, date, time, latitude, longitude, image, url } = req.body;
+  const {
+    userId,
+    eventId,
+    name,
+    venue,
+    city,
+    country,
+    date,
+    time,
+    latitude,
+    longitude,
+    image,
+    url,
+  } = req.body;
   if (!userId) {
     return res.status(401).json({ error: "User not logged in" });
   }
@@ -388,15 +421,35 @@ app.post("/save-event", (req, res) => {
     return res.status(400).json({ error: "Missing event ID" });
   }
   const query = `
-    INSERT INTO saved_events (user_id, event_id, name, venue, city, country, date, time, latitude, longitude, image, url) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+    INSERT INTO saved_events (user_id, event_id, name, venue, city, country, date, time, latitude, longitude, image, url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE name=?, venue=?, city=?, country=?, date=?, time=?, latitude=?, longitude=?, image=?, url=?
   `;
   db.query(
     query,
     [
-      userId, eventId, name, venue, city, country, date, time, latitude, longitude, image, url,
-      name, venue, city, country, date, time, latitude, longitude, image, url
+      userId,
+      eventId,
+      name,
+      venue,
+      city,
+      country,
+      date,
+      time,
+      latitude,
+      longitude,
+      image,
+      url,
+      name,
+      venue,
+      city,
+      country,
+      date,
+      time,
+      latitude,
+      longitude,
+      image,
+      url,
     ],
     (err, result) => {
       if (err) {
@@ -461,11 +514,10 @@ app.post("/save-place", (req, res) => {
   if (!userId) {
     return res.status(401).json({ error: "User not logged in" });
   }
-  console.log(userId, placeId, name, address, latitude, longitude, image);
   const query = `
-    INSERT INTO saved_places (user_id, place_id, name, address, latitude, longitude, image) 
-    VALUES (?, ?, ?, ?, ?, ?, ?) 
-    ON DUPLICATE KEY UPDATE 
+    INSERT INTO saved_places (user_id, place_id, name, address, latitude, longitude, image)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
       name = VALUES(name),
       address = VALUES(address),
       latitude = VALUES(latitude),
@@ -514,18 +566,17 @@ app.get("/saved-places/:userId", (req, res) => {
 // Save a site to profile
 app.post("/save-site", (req, res) => {
   const { userId, siteId, name, address, photo, latitude, longitude } = req.body;
-  // console.log(userId, siteId, name, address, photo, latitude, longitude);
   if (!userId) {
     return res.status(401).json({ error: "User not logged in" });
   }
   const query = `
-    INSERT INTO saved_sites (user_id, site_id, name, address, photo, latitude, longitude) 
-    VALUES (?, ?, ?, ?, ?, ?, ?) 
-    ON DUPLICATE KEY UPDATE 
-      name = VALUES(name), 
-      address = VALUES(address), 
-      photo = VALUES(photo), 
-      latitude = VALUES(latitude), 
+    INSERT INTO saved_sites (user_id, site_id, name, address, photo, latitude, longitude)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      name = VALUES(name),
+      address = VALUES(address),
+      photo = VALUES(photo),
+      latitude = VALUES(latitude),
       longitude = VALUES(longitude)
   `;
   db.query(
@@ -566,7 +617,6 @@ app.get("/saved-sites/:userId", (req, res) => {
   });
 });
 
-
 // Serve static images from public folder
 app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 
@@ -577,7 +627,6 @@ app.get("/religious-sites", async (req, res) => {
     return res.status(400).json({ error: "Location parameter is required." });
   }
 
-  // ✅ Use local fallback image paths (hosted by Vite or React dev server)
   const backupImages = {
     temple: Array.from({ length: 16 }, (_, i) => `/assets/images/Temples/Temple${i + 1}.jpg`),
     church: Array.from({ length: 16 }, (_, i) => `/assets/images/churches/church${i + 1}.jpg`),
@@ -595,7 +644,6 @@ app.get("/religious-sites", async (req, res) => {
 
     const places = response.data.results || [];
 
-    // Track used fallback indexes per category to avoid duplicates
     const usedIndexes = {
       temple: new Set(),
       church: new Set(),
@@ -625,7 +673,7 @@ app.get("/religious-sites", async (req, res) => {
           console.warn(`Foursquare image error for ${place.fsq_id}: ${fsqError.message}`);
 
           const lowerName = place.name.toLowerCase();
-          let category = "temple"; // default fallback
+          let category = "temple";
 
           if (lowerName.includes("church")) {
             category = "church";
@@ -636,7 +684,6 @@ app.get("/religious-sites", async (req, res) => {
           const availableImages = backupImages[category];
           const used = usedIndexes[category];
 
-          // Find an unused fallback image index
           let uniqueIndex;
           for (let i = 0; i < availableImages.length; i++) {
             if (!used.has(i)) {
@@ -646,7 +693,7 @@ app.get("/religious-sites", async (req, res) => {
             }
           }
 
-          imageUrl = availableImages[uniqueIndex] || "/assets/images/default.jpg"; // final fallback
+          imageUrl = availableImages[uniqueIndex] || "/assets/images/default.jpg";
         }
 
         return {
@@ -661,8 +708,11 @@ app.get("/religious-sites", async (req, res) => {
 
     res.json(placesWithImages);
   } catch (error) {
-    console.error("Error fetching religious sites:", error.message);
-    res.status(500).json({ error: "Failed to fetch religious sites." });
+    console.error("Error fetching religious sites:", error.message, error.stack);
+    res.status(500).json({
+      error: "Failed to fetch religious sites.",
+      details: error.message,
+    });
   }
 });
 
@@ -688,8 +738,8 @@ app.get("/live-events", async (req, res) => {
     const response = await axios.get(ticketmasterAPI, { params });
     if (response.data._embedded && response.data._embedded.events) {
       const events = response.data._embedded.events
-        .filter(event => event.dates.start.localDate === eventDate)
-        .map(event => ({
+        .filter((event) => event.dates.start.localDate === eventDate)
+        .map((event) => ({
           id: event.id,
           name: event.name,
           venue: event._embedded.venues[0].name,
@@ -707,12 +757,16 @@ app.get("/live-events", async (req, res) => {
       res.json([]);
     }
   } catch (error) {
-    console.error("Error fetching events:", error.message);
-    res.status(500).json({ error: "Failed to fetch event data" });
+    console.error("Error fetching events:", error.message, error.stack);
+    res.status(500).json({
+      error: "Failed to fetch event data",
+      details: error.message,
+    });
   }
 });
 
 app.use("/assets", express.static(path.join(__dirname, "public/assets/images")));
+
 // Fetch tourist places
 app.get("/tourist-places", async (req, res) => {
   const { location } = req.query;
@@ -721,13 +775,11 @@ app.get("/tourist-places", async (req, res) => {
     return res.status(400).json({ error: "Location is required." });
   }
 
-  // Serve fallback images from the public directory
   const fallbackImages = Array.from({ length: 10 }, (_, i) =>
-    `http://localhost:5173/assets/images/TouristPlaces/tourist ${i + 1}.jpg`
+    `http://localhost:5173/assets/images/TouristPlaces/tourist${i + 1}.jpg`
   );
 
   try {
-    // Fetch places using your custom logic
     const places = await fetchPlaces(location, "tourist_attraction");
 
     const usedFallbacks = new Set();
@@ -747,20 +799,17 @@ app.get("/tourist-places", async (req, res) => {
           );
 
           if (photoResponse.data.length > 0) {
-            const photo = photoResponse.data[0];
-            imageUrl = `${photo.prefix}300x300${photo.suffix}`;
+            imageUrl = `${photoResponse.data[0].prefix}300x300${photoResponse.data[0].suffix}`;
           } else {
             throw new Error("No image available.");
           }
         } catch (error) {
-          // Select a unique fallback image
-          const available = fallbackImages.filter(img => !usedFallbacks.has(img));
+          const available = fallbackImages.filter((img) => !usedFallbacks.has(img));
           if (available.length > 0) {
             const selected = available[Math.floor(Math.random() * available.length)];
             usedFallbacks.add(selected);
             imageUrl = selected;
           } else {
-            // Reuse randomly if all unique images are used
             imageUrl = fallbackImages[Math.floor(Math.random() * fallbackImages.length)];
           }
         }
@@ -777,14 +826,21 @@ app.get("/tourist-places", async (req, res) => {
 
     res.json(placesWithImages);
   } catch (error) {
-    console.error("Error fetching tourist places:", error.message);
-    res.status(500).json({ error: "Failed to fetch tourist places." });
+    console.error("Error fetching tourist places:", error.message, error.stack);
+    res.status(500).json({
+      error: "Failed to fetch tourist places.",
+      details: error.message,
+    });
   }
 });
 
 // Fetch restaurants
 app.get("/restaurants", async (req, res) => {
   const { location, budget } = req.query;
+  if (!location) {
+    return res.status(400).json({ error: "Location is required." });
+  }
+
   try {
     const { latitude, longitude } = await getCoordinates(location);
 
@@ -811,15 +867,14 @@ app.get("/restaurants", async (req, res) => {
 
     const restaurants = response.data.results || [];
 
-    // Static fallback images (adjust if you have more or fewer than 10)
-    const staticFallbackImages = Array.from({ length: 9 }, (_, i) => 
+    const staticFallbackImages = Array.from({ length: 9 }, (_, i) =>
       `http://localhost:5173/assets/images/restau/r${i + 1}.jpeg`
     );
 
     let usedFallbackIndexes = new Set();
 
     const restaurantData = await Promise.all(
-      restaurants.map(async (restaurant, index) => {
+      restaurants.map(async (restaurant) => {
         let photoUrl = "";
 
         try {
@@ -840,17 +895,16 @@ app.get("/restaurants", async (req, res) => {
             error.message
           );
 
-          // Try using static fallback image first (no repetition)
           const availableIndexes = staticFallbackImages
             .map((_, idx) => idx)
             .filter((i) => !usedFallbackIndexes.has(i));
 
           if (availableIndexes.length > 0) {
-            const randomIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            const randomIndex =
+              availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
             usedFallbackIndexes.add(randomIndex);
             photoUrl = staticFallbackImages[randomIndex];
           } else {
-            // If exhausted, fallback to Unsplash
             photoUrl = await fetchImageFromUnsplash(restaurant.name);
           }
         }
@@ -868,8 +922,11 @@ app.get("/restaurants", async (req, res) => {
     const filteredData = restaurantData.filter((item) => item !== null);
     res.json(filteredData);
   } catch (error) {
-    console.error("Error fetching restaurants:", error.message);
-    res.status(500).json({ error: "Failed to fetch restaurant data." });
+    console.error("Error fetching restaurants:", error.message, error.stack);
+    res.status(500).json({
+      error: "Failed to fetch restaurant data.",
+      details: error.message,
+    });
   }
 });
 
@@ -898,7 +955,7 @@ app.get("/:type", async (req, res) => {
       headers,
       params: {
         ll: `${latitude},${longitude}`,
-        query: type.slice(0, -1), // remove 's' for singular term like 'hospital'
+        query: type.slice(0, -1),
         radius: 5000,
         sort: "distance",
         limit: 10,
@@ -918,10 +975,9 @@ app.get("/:type", async (req, res) => {
         let imageUrl = "";
 
         try {
-          const photoResponse = await axios.get(
-            foursquarePhotoAPI(place.fsq_id),
-            { headers }
-          );
+          const photoResponse = await axios.get(foursquarePhotoAPI(place.fsq_id), {
+            headers,
+          });
           const photos = photoResponse.data;
 
           if (photos.length > 0) {
@@ -930,21 +986,18 @@ app.get("/:type", async (req, res) => {
             throw new Error("No photo available");
           }
         } catch (error) {
-          console.warn(
-            `Error fetching photo for ${place.name}:`,
-            error.message
-          );
+          console.warn(`Error fetching photo for ${place.name}:`, error.message);
 
           const availableIndexes = staticFallbackImages
             .map((_, idx) => idx)
             .filter((i) => !usedFallbackIndexes.has(i));
 
           if (availableIndexes.length > 0) {
-            const randomIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            const randomIndex =
+              availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
             usedFallbackIndexes.add(randomIndex);
             imageUrl = staticFallbackImages[randomIndex];
           } else {
-            // Fallback to Unsplash or a static ultimate placeholder
             imageUrl = await fetchImageFromUnsplash(place.name);
           }
         }
@@ -961,13 +1014,15 @@ app.get("/:type", async (req, res) => {
 
     res.json(processedPlaces);
   } catch (error) {
-    console.error(`Error fetching ${type}:`, error.message);
-    res.status(500).json({ error: `Failed to fetch ${type} data.` });
+    console.error(`Error fetching ${type}:`, error.message, error.stack);
+    res.status(500).json({
+      error: `Failed to fetch ${type} data.`,
+      details: error.message,
+    });
   }
 });
 
-
-
+// Create users table
 db.query(
   `CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(255) PRIMARY KEY,
@@ -980,27 +1035,12 @@ db.query(
     if (err) {
       console.error("Error creating 'users' table:", err.message);
     } else {
-      console.log("users table is ready ");
-    }
-  }
-);
-db.query(
-  `CREATE TABLE IF NOT EXISTS users (
-    id VARCHAR(255) PRIMARY KEY,
-    fullname VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(15) NOT NULL,
-    password VARCHAR(255) NOT NULL
-  )`,
-  (err) => {
-    if (err) {
-      console.error("Error creating 'users' table:", err.message);
-    } else {
-      console.log("users table is ready ");
+      console.log("users table is ready");
     }
   }
 );
 
+// Register endpoint
 app.post("/register", async (req, res) => {
   const { fullname, email, phone, password } = req.body;
   const userId = uuidv4();
@@ -1015,7 +1055,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     db.query(
-      "INSERT INTO users (id,fullname, email, phone, password) VALUES (?,?, ?, ?, ?)",
+      "INSERT INTO users (id, fullname, email, phone, password) VALUES (?, ?, ?, ?, ?)",
       [userId, fullname, email, phone, hashedPassword],
       (err) => {
         if (err) {
@@ -1046,6 +1086,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
+// Login endpoint
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -1100,6 +1141,7 @@ app.post("/login", (req, res) => {
   );
 });
 
+// Profile endpoint
 app.get("/profile/:id", (req, res) => {
   const userId = req.params.id;
 
@@ -1131,6 +1173,6 @@ app.get("/profile/:id", (req, res) => {
 });
 
 // Start the server
-app.listen(8000, () => {
+app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });

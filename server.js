@@ -44,7 +44,7 @@ app.use(
   cors({
     origin: [
       "https://smart-travel-companion-backend.onrender.com",
-      "https://smart-travel-companion.vercel.app",
+      "https://smart-travel-companion.vercel.app/",
       "http://localhost:5173",
       "http://localhost:8000",
     ],
@@ -795,7 +795,7 @@ app.get("/tourist-places", async (req, res) => {
   }
 
   const fallbackImages = Array.from({ length: 10 }, (_, i) =>
-    `http://localhost:5173/assets/images/TouristPlaces/tourist${i + 1}.jpg`
+    `smart-travel-companion.vercel.app/assets/images/TouristPlaces/tourist${i + 1}.jpg`
   );
 
   try {
@@ -887,7 +887,7 @@ app.get("/restaurants", async (req, res) => {
     const restaurants = response.data.results || [];
 
     const staticFallbackImages = Array.from({ length: 9 }, (_, i) =>
-      `http://localhost:5173/assets/images/restau/r${i + 1}.jpeg`
+      `smart-travel-companion.vercel.app/assets/images/restau/r${i + 1}.jpeg`
     );
 
     let usedFallbackIndexes = new Set();
@@ -984,7 +984,7 @@ app.get("/:type", async (req, res) => {
     const places = response.data.results || [];
 
     const staticFallbackImages = Array.from({ length: 9 }, (_, i) =>
-      `http://localhost:5173/assets/images/hospitals/h${i + 1}.jpeg`
+      `smart-travel-companion.vercel.app/assets/images/hospitals/h${i + 1}.jpeg`
     );
 
     let usedFallbackIndexes = new Set();

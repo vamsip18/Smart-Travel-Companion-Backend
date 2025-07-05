@@ -53,16 +53,34 @@ app.use(
 );
 
 // Helper functions
+const coordinateCache = new Map();
+
 const getCoordinates = async (location) => {
+  const cacheKey = encodeURIComponent(location);
+  if (coordinateCache.has(cacheKey)) {
+    const { coords, timestamp } = coordinateCache.get(cacheKey);
+    if (Date.now() - timestamp < 24 * 60 * 60 * 1000) { // 24-hour cache
+      return coords;
+    }
+  }
+
+  // Respect rate limit with a 1-second delay
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   try {
     const response = await axios.get(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-        location
-      )}&format=json&limit=1`
+      `https://nominatim.openstreetmap.org/search?q=${cacheKey}&format=json&limit=1`,
+      {
+        headers: {
+          "User-Agent": "SmartTravelCompanion/1.0 peelavamsi147@gmail.com", // Replace with your email
+        },
+      }
     );
     if (response.data.length > 0) {
       const { lat, lon } = response.data[0];
-      return { latitude: lat, longitude: lon };
+      const coords = { latitude: lat, longitude: lon };
+      coordinateCache.set(cacheKey, { coords, timestamp: Date.now() });
+      return coords;
     }
     throw new Error("No coordinates found for the given location.");
   } catch (error) {

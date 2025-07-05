@@ -44,6 +44,7 @@ app.use(
   cors({
     origin: [
       "https://smart-travel-companion-backend.onrender.com",
+      "smart-travel-companion.vercel.app",
       "http://localhost:5173",
       "http://localhost:8000",
     ],

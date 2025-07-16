@@ -21,16 +21,30 @@ const PORT = process.env.PORT || 8000;
 
 // Database connection
 const db = mysql.createConnection({
-  host: "sql8.freesqldatabase.com",
-  user: "sql8788368",
-  password: "R9G1mXWPK6",
-  database: "sql8788368",
+  host: "sql5.freesqldatabase.com",
+  user: "sql5790350",
+  password: "mqQbnl6pw8",
+  database: "sql5790350",
 });
+
+
+// const db = mysql.createConnection({
+//   host: "sql207.infinityfree.com",
+//   user: "if0_39485960 ",
+//   password: "srvagaaf",
+//   database: "if0_39485960_travel"
+// });
 
 // Connect to the database
 db.connect((err) => {
   if (err) {
-    console.error("Database connection failed:", err);
+    db = mysql.createConnection({
+      host: "sql207.infinityfree.com",
+      user: "if0_39485960 ",
+      password: "srvagaaf",
+      database: "if0_39485960_travel"
+    });
+    // console.error("Database connection failed:", err);
   } else {
     console.log("Connected to MySQL Database");
   }
@@ -43,8 +57,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: [
+
       "https://smart-travel-companion-backend.onrender.com",
-      "https://smart-travel-companion.vercel.app",
+      "http://localhost:5173",
+      "http://localhost:8000",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
@@ -793,7 +809,7 @@ app.get("/tourist-places", async (req, res) => {
   }
 
   const fallbackImages = Array.from({ length: 10 }, (_, i) =>
-    `smart-travel-companion.vercel.app/assets/images/TouristPlaces/tourist${i + 1}.jpg`
+    `http://localhost:5173/assets/images/TouristPlaces/tourist${i + 1}.jpg`
   );
 
   try {
@@ -885,7 +901,7 @@ app.get("/restaurants", async (req, res) => {
     const restaurants = response.data.results || [];
 
     const staticFallbackImages = Array.from({ length: 9 }, (_, i) =>
-      `smart-travel-companion.vercel.app/assets/images/restau/r${i + 1}.jpeg`
+      `http://localhost:5173/assets/images/restau/r${i + 1}.jpeg`
     );
 
     let usedFallbackIndexes = new Set();
@@ -982,7 +998,7 @@ app.get("/:type", async (req, res) => {
     const places = response.data.results || [];
 
     const staticFallbackImages = Array.from({ length: 9 }, (_, i) =>
-      `https://smart-travel-companion.vercel.app/assets/images/hospitals/h${i + 1}.jpeg`
+      `http://localhost:5173/assets/images/hospitals/h${i + 1}.jpeg`
     );
 
     let usedFallbackIndexes = new Set();

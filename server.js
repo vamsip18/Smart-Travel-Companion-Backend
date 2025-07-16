@@ -19,15 +19,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Primary DB (Railway)
+// Primary DB (FreeSQL)
 let db = mysql.createConnection({
-      host: "hopper.proxy.rlwy.net",
-      port: 43452,
-      user: "root",
-      password: "uslOflbfSzuTUDYRmPMslEYGChevPVRw",
-      database: "railway",
-      multipleStatements: true,
+      host: "sql5.freesqldatabase.com",
+      user: "sql5790350",
+      password: "mqQbnl6pw8",
+      database: "sql5790350",
     });
+    
 
 
 // Attempt primary connection
@@ -35,23 +34,25 @@ db.connect((err) => {
   if (err) {
     console.error("Primary DB connection failed. Trying secondary DB...");
 
-    // Fallback DB (FreeSQL)
+    // Fallback DB ()
     db = mysql.createConnection({
-      host: "sql5.freesqldatabase.com",
-      user: "sql5790350",
-      password: "mqQbnl 6pw8",
-      database: "sql5790350",
+      host: "hopper.proxy.rlwy.net",
+      port: 43452,
+      user: "root",
+      password: "uslOf lbfSzuTUDYRmPMslEYGChevPVRw",
+      database: "railway",
+      multipleStatements: true,
     });
 
     db.connect((fallbackErr) => {
       if (fallbackErr) {
         console.error("Secondary DB connection failed:", fallbackErr);
       } else {
-        console.log("Connected to secondary MySQL database (FreeSQL)");
+        console.log("Connected to secondary MySQL database (Railway)");
       }
     });
   } else {
-    console.log("Connected to primary MySQL database (Railway)");
+    console.log("Connected to primary MySQL database (FreeSQL)");
   }
 });
 
@@ -1143,13 +1144,13 @@ CREATE TABLE IF NOT EXISTS saved_events (
 );
 `;
 
-db.query(createTablesSQL, (err) => {
-  if (err) {
-    console.error("Error creating tables:", err.message);
-  } else {
-    console.log("All tables created successfully");
-  }
-});
+// db.query(createTablesSQL, (err) => {
+//   if (err) {
+//     console.error("Error creating tables:", err.message);
+//   } else {
+//     console.log("All tables created successfully");
+//   }
+// });
 
 
 // Register endpoint
